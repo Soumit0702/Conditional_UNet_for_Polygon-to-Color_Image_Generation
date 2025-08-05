@@ -8,15 +8,15 @@ We built a Conditional UNet architecture to learn this mapping, explored various
 
 **Hyperparameters**
 What Was Tried
-Learning rates: 1e-3, 5e-4, 1e-4 (✅ best)
+Learning rates: 1e-3, 5e-4, 1e-4 (best)
 
-**Optimizers**: Adam, AdamW (✅ Adam gave smoother convergence)
+**Optimizers**: Adam, AdamW (Adam gave smoother convergence)
 
 **Loss weights**: L1-only, MSE-only, and combination (L1: 1.0, MSE: 0.5 worked best)
 
 **Dropout values**: 0.0, 0.1, 0.25
 
-**Schedulers**: ReduceLROnPlateau (✅ chosen), CosineAnnealing
+**Schedulers**: ReduceLROnPlateau (This is chosen), CosineAnnealing
 
 **Final Settings**
 Hyperparameter	Value
