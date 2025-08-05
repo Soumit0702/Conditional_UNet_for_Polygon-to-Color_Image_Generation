@@ -1,60 +1,90 @@
-Polygon Colorization using Conditional UNet: Report and Insights
-Ayna Internship Assignment
-Hyperparameters
-What was tried
+Ayna_Internship_Assignment
+This repository contains the implementation notebook and a PDF report for the Ayna Internship Assignment on polygon colorization using a Conditional UNet.
 
-Learning rates: 1e-3, 5e-4, 1e-4 (best)
-Optimizers: Adam, AdamW (Adam yielded smoother convergence)
-Loss weights: L1-only, MSE-only, combo (L1: 1.0, MSE: 0.5 worked best)
+📄 Overview
+The goal of this project was to design and train a model that can take a grayscale image of a polygon along with a target color name and generate a colorized output image with the polygon filled in the specified color.
+
+We built a Conditional UNet architecture to learn this mapping, explored various conditioning methods, tuned hyperparameters, and analyzed training dynamics to arrive at an optimal setup.
+
+🔧 Hyperparameters
+What Was Tried
+Learning rates: 1e-3, 5e-4, 1e-4 (✅ best)
+
+Optimizers: Adam, AdamW (✅ Adam gave smoother convergence)
+
+Loss weights: L1-only, MSE-only, and combination (L1: 1.0, MSE: 0.5 worked best)
+
 Dropout values: 0.0, 0.1, 0.25
-Schedulers: ReduceLROnPlateau (chosen), CosineAnnealing
+
+Schedulers: ReduceLROnPlateau (✅ chosen), CosineAnnealing
 
 Final Settings
-ParameterValueImage Size256x256Embedding Dim64Batch Size16Learning Rate1e-4LossL1 + 0.5 * MSEDropout0.1OptimizerAdamSchedulerReduceLROnPlateauEarly Stopping15 epochs
-Rationale: Final settings were chosen based on validation loss trends and visual outputs, considering sharpness, saturation, and boundary quality.
-Architecture and Conditioning
+Hyperparameter	Value
+Image Size	256x256
+Embedding Dimension	64
+Batch Size	16
+Learning Rate	1e-4
+Loss Function	L1 + 0.5 × MSE
+Dropout	0.1
+Optimizer	Adam
+Scheduler	ReduceLROnPlateau
+Early Stopping	15 epochs
+
+Rationale: Final settings were chosen based on validation loss trends and visual output quality (sharpness, saturation, edge clarity).
+
+🏗️ Architecture and Conditioning
 Design Overview
+Backbone: 4-level symmetric UNet with skip connections and DoubleConv modules (Conv → BN → ReLU ×2).
 
-Backbone: A standard 4-level UNet with symmetric encoder-decoder pathways and skip connections. Each block is composed of two convolutional layers with batch normalization and ReLU activations (via a DoubleConv module).
-Condition Injection: The color label is passed through an nn.Embedding layer to obtain a 64-dimensional vector. This vector is broadcast spatially (to 64×H×W) and concatenated with the 1-channel grayscale input along the channel dimension, forming a 65-channel tensor.
-Encoder Path: The concatenated tensor is passed through:
+Conditioning: Color label is embedded via nn.Embedding (dim = 64), expanded to match spatial dimensions (64×H×W), and concatenated with 1-channel input → resulting in a 65-channel input tensor.
 
-Initial DoubleConv block (1+64 → 64 channels)
-Downsampling layers with max pooling followed by DoubleConv blocks, with increasing channels: 64→128→256→512→1024
+Encoder Path:
 
+Initial block: 1+64 → 64
 
-Decoder Path: Uses bilinear upsampling and skip connections from encoder. Each Up block merges feature maps from encoder and decoder before applying DoubleConv.
-Output Layer: A 1×1 convolution projects the final feature map (64 channels) to 3 output channels (RGB), followed by a sigmoid activation to constrain output values to [0,1].
-Dropout: Applied in DoubleConv blocks to prevent overfitting, set at 0.1.
+Downsampling: 64 → 128 → 256 → 512 → 1024 (via max pooling + DoubleConv)
+
+Decoder Path: Bilinear upsampling + skip connections, followed by DoubleConv blocks.
+
+Output Layer: 1×1 Conv → 3-channel RGB output → sigmoid activation.
+
+Dropout: Applied within DoubleConv blocks (p=0.1).
 
 Ablations Explored
+No Conditioning: Outputs lacked diversity, always predicted a default color.
 
-No conditioning: Model always predicted the same color regardless of input, confirming the importance of label injection.
-FiLM vs. Concatenation: FiLM-based conditioning (Feature-wise Linear Modulation) was tested but underperformed compared to simple channel-wise concatenation of the embedding.
-Upsampling methods: Transposed convolution vs. bilinear interpolation showed no significant difference; bilinear was chosen for simplicity and parameter efficiency.
+Concatenation vs. FiLM: Concatenation of embeddings as extra spatial channels gave superior results.
 
-Training Dynamics
+TransposeConv vs. Bilinear Upsampling: Both worked similarly; bilinear chosen for simplicity.
+
+📈 Training Dynamics
 Loss Curves
-Both training and validation losses steadily decreased over epochs. Mild overfitting appeared after epoch 60 and was addressed using early stopping.
-Qualitative Trends
+Training and validation losses decreased steadily. Slight overfitting appeared after epoch 60, mitigated via early stopping.
 
-Early epochs: Output images were desaturated or patchy
-Mid training: Colors became more vivid and edges more defined
-Final model: Accurately filled polygons with correct colors
+Qualitative Trends
+Early epochs: Desaturated, patchy outputs.
+
+Mid training: Colors became more vivid, shapes more accurate.
+
+Final model: Correct colors, well-bounded polygons.
 
 Failure Modes and Fixes
+Blurry edges: Fixed by prioritizing L1 loss.
 
-Blurry edges: Resolved using L1 loss
-Wrong colors: Occurred when conditioning was not injected early enough in the model
-Output artifacts: Reduced using dropout and data augmentation
+Wrong colors: Occurred when conditioning was injected too late—fixed by conditioning from the first layer.
 
-Key Learnings
+Artifacts: Reduced using dropout and augmentation.
 
-Conditional embeddings are effective; the model learned distinct outputs for the same shape with different input colors
-UNet architecture is suitable for structured image generation and preserved polygon boundaries well
-Embedding injection should occur early (in the first convolutional layer) to provide strong conditioning
-Combining L1 and MSE loss yielded better visual fidelity than using either one alone
-Data augmentation was essential for generalization, especially on rotated or flipped polygon shapes
+🧠 Key Learnings
+Conditional embeddings help produce distinct outputs for identical shapes with different target colors.
 
-Conclusion
-This project demonstrates that a Conditional UNet, when combined with simple color conditioning and a stable training setup, can produce high-quality polygon colorizations that generalize well across shapes and classes.
+UNet architecture effectively preserves polygon structure and boundaries.
+
+Conditioning must occur early (first conv layer) to be effective.
+
+Combining L1 and MSE losses improves visual quality.
+
+Augmentations (rotation, flipping) enhance generalization.
+
+✅ Conclusion
+This project demonstrates that a Conditional UNet, combined with simple color label conditioning and robust training practices, can generate accurate and generalizable colorizations for polygon images.
