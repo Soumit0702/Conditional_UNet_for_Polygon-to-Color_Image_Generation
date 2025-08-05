@@ -1,4 +1,4 @@
-Ayna_Internship_Assignment
+## Ayna_Internship_Assignment
 This repository contains the implementation notebook and a PDF report for the Ayna Internship Assignment on polygon colorization using a Conditional UNet.
 
 **Overview**
